@@ -42,7 +42,7 @@ opt = cmd:parse(arg)
 function gprint(str)
     if opt.verbose == 1 then print(str) end
 end
-
+--------------------------------------------------------------------
 -- check that cunn/cutorch are installed if user wants to use the GPU
 if opt.gpuid >= 0 and opt.opencl == 0 then
     local ok, cunn = pcall(require, 'cunn')
@@ -76,14 +76,14 @@ if opt.gpuid >= 0 and opt.opencl == 1 then
         opt.gpuid = -1 -- overwrite user setting
     end
 end
-
+-- Seed for random generator
 torch.manualSeed(opt.seed)
 
 -- load the model checkpoint
 if not lfs.attributes(opt.model, 'mode') then
     gprint('Error: File ' .. opt.model .. ' does not exist. Are you sure you didn\'t forget to prepend cv/ ?')
 end
-checkpoint = torch.load(opt.model)
+checkpoint = torch.load(opt.model) -- save checkpoints
 protos = checkpoint.protos
 protos.rnn:evaluate() -- put in eval mode so that dropout works properly
 
@@ -108,12 +108,23 @@ for L = 1,checkpoint.opt.num_layers do
 end
 state_size = #current_state
 
--- do a few seeded timesteps
+-- do a few seeded timesteps What are seeded timesteps
 local seed_text = opt.primetext
+seed_text = 'Ég,fp1en,ég' .. '\n'
+seed_text = seed_text .. 'er,sfg1en,vera' .. '\n'
+
+seed_text = seed_text .. 'nú,aa,nú' .. '\n'
+seed_text = seed_text .. 'ýmsu,foheþ,ýmis' .. '\n'
+seed_text = seed_text .. 'vanur,lkensf,vanur' .. '\n'
+seed_text = seed_text .. 'en,c,en' .. '\n'
+seed_text = seed_text .. 'hef,sfg1en,hafa' .. '\n'
+seed_text = seed_text .. 'þó,aa,þó' .. '\n'
+print('Hallo' .. seed_text .. ' \n')
+print(opt.length..'\n')
 if string.len(seed_text) > 0 then
     gprint('seeding with ' .. seed_text)
     gprint('--------------------------')
-    for c in seed_text:gmatch'.' do
+    for c in seed_text:gmatch',' do
         prev_char = torch.Tensor{vocab[c]}
         io.write(ivocab[prev_char[1]])
         if opt.gpuid >= 0 and opt.opencl == 0 then prev_char = prev_char:cuda() end
@@ -128,7 +139,7 @@ else
     -- fill with uniform probabilities over characters (? hmm)
     gprint('missing seed text, using uniform probability over first character')
     gprint('--------------------------')
-    prediction = torch.Tensor(1, #ivocab):fill(1)/(#ivocab)
+    prediction = torch.Tensor(1, #ivocab):fill(1)/(#ivocab) --torch.Tensor?
     if opt.gpuid >= 0 and opt.opencl == 0 then prediction = prediction:cuda() end
     if opt.gpuid >= 0 and opt.opencl == 1 then prediction = prediction:cl() end
 end
@@ -139,7 +150,7 @@ for i=1, opt.length do
     -- log probabilities from the previous timestep
     if opt.sample == 0 then
         -- use argmax
-        local _, prev_char_ = prediction:max(2)
+        local _, prev_char_ = prediction:max(2) -- what is prediction
         prev_char = prev_char_:resize(1)
     else
         -- use sampling

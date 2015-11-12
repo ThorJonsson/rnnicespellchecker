@@ -112,19 +112,17 @@ state_size = #current_state
 local seed_text = opt.primetext
 seed_text = 'Ég,fp1en,ég' .. '\n'
 seed_text = seed_text .. 'er,sfg1en,vera' .. '\n'
-
 seed_text = seed_text .. 'nú,aa,nú' .. '\n'
 seed_text = seed_text .. 'ýmsu,foheþ,ýmis' .. '\n'
 seed_text = seed_text .. 'vanur,lkensf,vanur' .. '\n'
 seed_text = seed_text .. 'en,c,en' .. '\n'
 seed_text = seed_text .. 'hef,sfg1en,hafa' .. '\n'
 seed_text = seed_text .. 'þó,aa,þó' .. '\n'
-print('Hallo' .. seed_text .. ' \n')
+
 print(opt.length..'\n')
 if string.len(seed_text) > 0 then
-    gprint('seeding with ' .. seed_text)
-    gprint('--------------------------')
-    for c in seed_text:gmatch',' do
+    for c in seed_text:gmatch'.''.' do
+        print(c)
         prev_char = torch.Tensor{vocab[c]}
         io.write(ivocab[prev_char[1]])
         if opt.gpuid >= 0 and opt.opencl == 0 then prev_char = prev_char:cuda() end
@@ -135,38 +133,31 @@ if string.len(seed_text) > 0 then
         for i=1,state_size do table.insert(current_state, lst[i]) end
         prediction = lst[#lst] -- last element holds the log probabilities
     end
-else
-    -- fill with uniform probabilities over characters (? hmm)
-    gprint('missing seed text, using uniform probability over first character')
-    gprint('--------------------------')
-    prediction = torch.Tensor(1, #ivocab):fill(1)/(#ivocab) --torch.Tensor?
-    if opt.gpuid >= 0 and opt.opencl == 0 then prediction = prediction:cuda() end
-    if opt.gpuid >= 0 and opt.opencl == 1 then prediction = prediction:cl() end
 end
 
--- start sampling/argmaxing
-for i=1, opt.length do
-
-    -- log probabilities from the previous timestep
-    if opt.sample == 0 then
-        -- use argmax
-        local _, prev_char_ = prediction:max(2) -- what is prediction
-        prev_char = prev_char_:resize(1)
-    else
-        -- use sampling
-        prediction:div(opt.temperature) -- scale by temperature
-        local probs = torch.exp(prediction):squeeze()
-        probs:div(torch.sum(probs)) -- renormalize so probs sum to one
-        prev_char = torch.multinomial(probs:float(), 1):resize(1):float()
-    end
-
-    -- forward the rnn for next character
-    local lst = protos.rnn:forward{prev_char, unpack(current_state)}
-    current_state = {}
-    for i=1,state_size do table.insert(current_state, lst[i]) end
-    prediction = lst[#lst] -- last element holds the log probabilities
-
-    io.write(ivocab[prev_char[1]])
-end
-io.write('\n') io.flush()
+---- start sampling/argmaxing
+--for i=1, opt.length do
+--
+--    -- log probabilities from the previous timestep
+--    if opt.sample == 0 then
+--        -- use argmax
+--        local _, prev_char_ = prediction:max(2) -- what is prediction
+--        prev_char = prev_char_:resize(1)
+--    else
+--        -- use sampling
+--        prediction:div(opt.temperature) -- scale by temperature
+--        local probs = torch.exp(prediction):squeeze()
+--        probs:div(torch.sum(probs)) -- renormalize so probs sum to one
+--        prev_char = torch.multinomial(probs:float(), 1):resize(1):float()
+--    end
+--
+--    -- forward the rnn for next character
+--    local lst = protos.rnn:forward{prev_char, unpack(current_state)}
+--    current_state = {}
+--    for i=1,state_size do table.insert(current_state, lst[i]) end
+--    prediction = lst[#lst] -- last element holds the log probabilities
+--
+--    io.write(ivocab[prev_char[1]])
+--end
+--io.write('\n') io.flush()
 

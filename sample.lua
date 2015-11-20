@@ -13,7 +13,7 @@ require 'nn'
 require 'nngraph'
 require 'optim'
 require 'lfs'
-
+require 'csvigo'
 require 'util.OneHot'
 require 'util.misc'
 
@@ -33,6 +33,7 @@ cmd:option('-temperature',1,'temperature of sampling')
 cmd:option('-gpuid',0,'which gpu to use. -1 = use CPU')
 cmd:option('-opencl',0,'use OpenCL (instead of CUDA)')
 cmd:option('-verbose',1,'set to 0 to ONLY print the sampled text, no diagnostics')
+cmd:option('-csvFile',"",'load csv file')
 cmd:text()
 
 -- parse input params
@@ -109,20 +110,13 @@ end
 state_size = #current_state
 
 -- do a few seeded timesteps What are seeded timesteps
-local seed_text = opt.primetext
---seed_text = 'Ég,fp1en,ég' .. '\n'
---seed_text = seed_text .. 'er,sfg1en,vera' .. '\n'
---
---seed_text = seed_text .. 'nú,aa,nú' .. '\n'
---seed_text = seed_text .. 'ýmsu,foheþ,ýmis' .. '\n'
---seed_text = seed_text .. 'vanur,lkensf,vanur' .. '\n'
---seed_text = seed_text .. 'en,c,en' .. '\n'
---seed_text = seed_text .. 'hef,sfg1en,hafa' .. '\n'
---seed_text = seed_text .. 'þó,aa,þó' .. '\n'
-print(opt.length..'\n')
+local csv_table = csvigo.load({path = opt.csvFile, mode = 'large'})
+for j=1, 100 do 
+local seed_text = csv_table[j+1][1] .. ','
+--print(opt.length..'\n')
 if string.len(seed_text) > 0 then
-    gprint('seeding with ' .. seed_text)
-    gprint('--------------------------')
+--    gprint('seeding with ' .. seed_text)
+--    gprint('--------------------------')
     for c in seed_text:gmatch'.' do
         prev_char = torch.Tensor{vocab[c]}
         io.write(ivocab[prev_char[1]])
@@ -135,9 +129,9 @@ if string.len(seed_text) > 0 then
         prediction = lst[#lst] -- last element holds the log probabilities
     end
 end
-
+endToken = ""
 --start sampling/argmaxing
-for i=1, opt.length do
+while endToken ~= '\n' do
     -- log probabilities from the previous timestep
     if opt.sample == 0 then
         -- use argmax
@@ -156,8 +150,8 @@ for i=1, opt.length do
     current_state = {}
     for i=1,state_size do table.insert(current_state, lst[i]) end
   prediction = lst[#lst] -- last element holds the log probabilities
-    if ivocab[prev_char[1]] == '\n' then print('\n' .. i .. '\n') end
+    endToken = ivocab[prev_char[1]]
     io.write(ivocab[prev_char[1]])
 end
+end
 io.write('\n') io.flush()
-

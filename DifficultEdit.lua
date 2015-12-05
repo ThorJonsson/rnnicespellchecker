@@ -32,11 +32,21 @@ function charVec(m)
         return str
 end
 
-function CompStrings(filepath)
-    require 'lfs'
-    require 'csvigo'
-    for file in lfs.dir(filepath) do
-        m = csvigo.load{path=filepath..file ,mode='raw'}
+function ExplainData(filepath)
+        require 'lfs'
+        require 'csvigo'
+        for file in lfs.dir(filepath) do
+                m = csvigo.load{path=filepath..file,mode='raw'}
+                CompStrings(m)
+                csvigo.save{data=m,path=filepath..'NewRep'..file}
+        end
+end
+
+function CompStrings(m)
+    --require 'lfs'
+    --require 'csvigo'
+    --for file in lfs.dir(filepath) do
+            --      m = csvigo.load{path=filepath..file ,mode='raw'}
         l =2
          while l <= #m do
              if string.len(m[l][1])==0 and string.len(m[l][2])==0 then l=l+1 end 
@@ -119,18 +129,17 @@ function CompStrings(filepath)
              end
              if strLen(correct) >= strLen(wrong) then
 
-              table.insert(m[i],charVec(shorterCorr))
-              table.insert(m[i],charVec(longerCorr))
+              table.insert(m[l],charVec(shorterCorr))
+              table.insert(m[l],charVec(longerCorr))
              else
-              table.insert(m[i],charVec(longerCorr))
-              table.insert(m[i],charVec(shorterCorr))
+              table.insert(m[l],charVec(longerCorr))
+              table.insert(m[l],charVec(shorterCorr))
              end
               l = l+1
          end
-  
-                csvigo.save{data=m,path=filepath..'NewRep'..file}
-                end
-        end
+                --csvigo.save{data=m,path=filepath..'NewRep'..file}
+end
+                --end
 
 
         

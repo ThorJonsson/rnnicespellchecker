@@ -170,10 +170,14 @@ end
 -- put the above things into one flattened parameters tensor
 params, grad_params = model_utils.combine_all_parameters(protos.rnn)
 
+-- Do something else here
 -- initialization
 if do_random_init then
     params:uniform(-0.08, 0.08) -- small uniform numbers
 end
+
+
+
 -- initialize the LSTM forget gates with slightly higher biases to encourage remembering in the beginning
 if opt.model == 'lstm' then
     for layer_idx = 1, opt.num_layers do

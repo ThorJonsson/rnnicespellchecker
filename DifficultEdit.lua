@@ -38,18 +38,20 @@ function ExplainData(filepath)
         for file in lfs.dir(filepath) do
                 m = csvigo.load{path=filepath..file,mode='raw'}
                 CompStrings(m)
+                
                 csvigo.save{data=m,path=filepath..'NewRep'..file}
         end
 end
 
 function CompStrings(m)
-    --require 'lfs'
-    --require 'csvigo'
-    --for file in lfs.dir(filepath) do
-            --      m = csvigo.load{path=filepath..file ,mode='raw'}
         l =2
          while l <= #m do
-             if string.len(m[l][1])==0 and string.len(m[l][2])==0 then l=l+1 end 
+             if string.len(m[l][1])==0 and string.len(m[l][2])==0 then 
+                     table.insert(m[l],'')
+                     table.insert(m[l],'')
+                     l=l+1 
+             
+             end 
               wrong = m[l][1] 
               correct = m[l][2]
               
@@ -137,9 +139,6 @@ function CompStrings(m)
              end
               l = l+1
          end
-                --csvigo.save{data=m,path=filepath..'NewRep'..file}
 end
-                --end
-
 
         

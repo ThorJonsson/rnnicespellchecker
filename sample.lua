@@ -16,6 +16,7 @@ require 'lfs'
 require 'csvigo'
 require 'util.OneHot'
 require 'util.misc'
+local dbg = require("debugger.lua/debugger")
 
 cmd = torch.CmdLine()
 cmd:text()
@@ -61,22 +62,6 @@ if opt.gpuid >= 0 and opt.opencl == 0 then
     end
 end
 
--- check that clnn/cltorch are installed if user wants to use OpenCL
-if opt.gpuid >= 0 and opt.opencl == 1 then
-    local ok, cunn = pcall(require, 'clnn')
-    local ok2, cutorch = pcall(require, 'cltorch')
-    if not ok then print('package clnn not found!') end
-    if not ok2 then print('package cltorch not found!') end
-    if ok and ok2 then
-        gprint('using OpenCL on GPU ' .. opt.gpuid .. '...')
-        gprint('Make sure that your saved checkpoint was also trained with GPU. If it was trained with CPU use -gpuid -1 for sampling as well')
-        cltorch.setDevice(opt.gpuid + 1) -- note +1 to make it 0 indexed! sigh lua
-        torch.manualSeed(opt.seed)
-    else
-        gprint('Falling back on CPU mode')
-        opt.gpuid = -1 -- overwrite user setting
-    end
-end
 -- Seed for random generator
 torch.manualSeed(opt.seed)
 
@@ -92,7 +77,7 @@ protos.rnn:evaluate() -- put in eval mode so that dropout works properly
 local vocab = checkpoint.vocab
 local ivocab = {}
 for c,i in pairs(vocab) do ivocab[i] = c end
-
+print("We are now inside the debugger")
 -- initialize the rnn state to all zeros
 gprint('creating an ' .. checkpoint.opt.model .. '...')
 local current_state
@@ -108,7 +93,6 @@ for L = 1,checkpoint.opt.num_layers do
     end
 end
 state_size = #current_state
-
 -- do a few seeded timesteps What are seeded timesteps
 local csv_table = csvigo.load({path = opt.csvFile, mode = 'large'})
 for j=1, 100 do 
@@ -140,11 +124,11 @@ while endToken ~= '\n' do
     else
         -- use sampling
         prediction:div(1) -- scale by temperature
-        local probs = torch.exp(prediction):squeeze()
+        probs = torch.exp(prediction):squeeze()
         probs:div(torch.sum(probs)) -- renormalize so probs sum to one
         prev_char = torch.multinomial(probs:float(), 1):resize(1):float()
-    end
-
+        dbg()
+     end
     -- forward the rnn for next character
     local lst = protos.rnn:forward{prev_char, unpack(current_state)}
     current_state = {}

@@ -48,7 +48,8 @@
         v1.00 - Initial.
 ]]
 function EditDistance(m)
-    for k=2, #m do
+    local dbg = require("debugger.lua/debugger")
+        for k=2, #m do
         s = m[k][1]
         t = m[k][2]
         local s_len, t_len = #s, #t -- Calculate the sizes of the strings or arrays

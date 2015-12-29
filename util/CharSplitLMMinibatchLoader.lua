@@ -2,6 +2,7 @@
 -- Modified from https://github.com/oxford-cs-ml-2015/practical6
 -- the modification included support for train/val/test splits
 
+local utf8 = require 'lua-utf8'
 local CharSplitLMMinibatchLoader = {}
 CharSplitLMMinibatchLoader.__index = CharSplitLMMinibatchLoader
 
@@ -46,7 +47,7 @@ function CharSplitLMMinibatchLoader.create(data_dir, batch_size, seq_length, spl
     local len = data:size(1)
     if len % (batch_size * seq_length) ~= 0 then
         print('cutting off end of data so that the batches/sequences divide evenly')
-        data = data:sub(1, batch_size * seq_length 
+        data = data:utf8.sub(1, batch_size * seq_length 
                     * math.floor(len / (batch_size * seq_length)))
     end
 
@@ -62,7 +63,7 @@ function CharSplitLMMinibatchLoader.create(data_dir, batch_size, seq_length, spl
     self.seq_length = seq_length
 
     local ydata = data:clone()
-    ydata:sub(1,-2):copy(data:sub(2,-1))
+    ydata:utf8.sub(1,-2):copy(data:utf8.sub(2,-1))
     ydata[-1] = data[1]
     self.x_batches = data:view(batch_size, -1):split(seq_length, 2)  -- #rows = #batches
     self.nbatches = #self.x_batches
@@ -138,10 +139,10 @@ function CharSplitLMMinibatchLoader.text_to_tensor(in_textfile, out_vocabfile, o
     local unordered = {}
     rawdata = f:read(cache_len)
     repeat
-        for char in rawdata:gmatch'.' do
+        for char in rawdata:utf8.gmatch'.' do
             if not unordered[char] then unordered[char] = true end
         end
-        tot_len = tot_len + #rawdata
+        tot_len = tot_len + uft8.len(rawdata)
         rawdata = f:read(cache_len)
     until not rawdata
     f:close()
@@ -161,10 +162,10 @@ function CharSplitLMMinibatchLoader.text_to_tensor(in_textfile, out_vocabfile, o
     local currlen = 0
     rawdata = f:read(cache_len)
     repeat
-        for i=1, #rawdata do
-            data[currlen+i] = vocab_mapping[rawdata:sub(i, i)] -- lua has no string indexing using []
+        for i=1, utf8.len(rawdata) do
+            data[currlen+i] = vocab_mapping[rawdata:utf8.sub(i, i)] -- lua has no string indexing using []
         end
-        currlen = currlen + #rawdata
+        currlen = currlen + uft8.len(rawdata)
         rawdata = f:read(cache_len)
     until not rawdata
     f:close()

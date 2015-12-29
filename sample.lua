@@ -93,49 +93,47 @@ for L = 1,checkpoint.opt.num_layers do
     end
 end
 state_size = #current_state
+local seed_text = ''
 -- do a few seeded timesteps What are seeded timesteps
 local csv_table = csvigo.load({path = opt.csvFile, mode = 'large'})
+dbg()
 for j=1, 100 do 
-local seed_text = csv_table[j+1][1] .. ','
---print(opt.length..'\n')
-if string.len(seed_text) > 0 then
---    gprint('seeding with ' .. seed_text)
---    gprint('--------------------------')
-    for c in seed_text:gmatch'.' do
-        prev_char = torch.Tensor{vocab[c]}
-        io.write(ivocab[prev_char[1]])
-        if opt.gpuid >= 0 and opt.opencl == 0 then prev_char = prev_char:cuda() end
-        if opt.gpuid >= 0 and opt.opencl == 1 then prev_char = prev_char:cl() end
-        local lst = protos.rnn:forward{prev_char, unpack(current_state)}
-        -- lst is a list of [state1,state2,..stateN,output]. We want everything but last piece
-        current_state = {}
-        for i=1,state_size do table.insert(current_state, lst[i]) end
-        prediction = lst[#lst] -- last element holds the log probabilities
-    end
-end
-endToken = ""
---start sampling/argmaxing
-while endToken ~= '\n' do
-    -- log probabilities from the previous timestep
-    if opt.sample == 0 then
-        -- use argmax
-        local _, prev_char_ = prediction:max(2) -- what is prediction
-        prev_char = prev_char_:resize(1)
-    else
-        -- use sampling
-        prediction:div(1) -- scale by temperature
-        probs = torch.exp(prediction):squeeze()
-        probs:div(torch.sum(probs)) -- renormalize so probs sum to one
-        prev_char = torch.multinomial(probs:float(), 1):resize(1):float()
-        dbg()
-     end
-    -- forward the rnn for next character
-    local lst = protos.rnn:forward{prev_char, unpack(current_state)}
-    current_state = {}
-    for i=1,state_size do table.insert(current_state, lst[i]) end
-  prediction = lst[#lst] -- last element holds the log probabilities
-    endToken = ivocab[prev_char[1]]
-    io.write(ivocab[prev_char[1]])
-end
+        seed_text = csv_table[j+1][1] .. ','
+        io.write(csv_table[j+1][1] .. ',')
+        if string.len(seed_text) > 0 then
+                for c in seed_text:gmatch'.' do
+                        prev_char = torch.Tensor{vocab[c]}
+                        if opt.gpuid >= 0 and opt.opencl == 0 then prev_char = prev_char:cuda() end
+                        if opt.gpuid >= 0 and opt.opencl == 1 then prev_char = prev_char:cl() end
+                        local lst = protos.rnn:forward{prev_char, unpack(current_state)}
+                        -- lst is a list of [state1,state2,..stateN,output]. We want everything but last piece
+                        current_state = {}
+                        for i=1,state_size do table.insert(current_state, lst[i]) end
+                        prediction = lst[#lst] -- last element holds the log probabilities
+                end
+        end
+        endToken = ""
+        --start sampling/argmaxing
+        while endToken ~= '\n' do
+        -- log probabilities from the previous timestep
+                if opt.sample == 0 then
+                -- use argmax
+                        local _, prev_char_ = prediction:max(2) -- what is prediction
+                        prev_char = prev_char_:resize(1)
+                else
+                -- use sampling
+                        prediction:div(1) -- scale by temperature
+                        probs = torch.exp(prediction):squeeze()
+                        probs:div(torch.sum(probs)) -- renormalize so probs sum to one
+                        prev_char = torch.multinomial(probs:float(), 1):resize(1):float()
+                end
+                -- forward the rnn for next character
+                local lst = protos.rnn:forward{prev_char, unpack(current_state)}
+                current_state = {}
+                for i=1,state_size do table.insert(current_state, lst[i]) end
+                prediction = lst[#lst] -- last element holds the log probabilities
+                endToken = ivocab[prev_char[1]]
+                io.write(ivocab[prev_char[1]])
+        end
 end
 io.write('\n') io.flush()

@@ -2,7 +2,42 @@
 -- Find the longest increasing subsequence in a given sequence [LIS]
 -- In Lua
 
+-- Implement a set in lua
+function Set(tab)
+        local set = {}
+        for _, i in ipairs(tab) do
+                set[i] = true
+        end
+        return set
+end
 
+-- In this function we assume data has been loaded to m
+function ObtainWrongInstances(m)
+        a = {}
+        j = 1
+        for i=1,#m do
+                if m[i][1] ~= m[i][2] then
+                        a[j] = {}
+                        a[j][1] = m[i][1]
+                        a[j][2] = m[i][2]
+                        j=j+1
+                end
+        end
+        return a
+end
+
+-- This function performs the representation on all words in the csv table
+function ExplainData(m)
+        local csvigo = require 'csvigo'
+        filepath = '/home/thj92/Haust2015/Reiknigreind/char-rnn/'
+      --m = csvigo.load{path=filepath..file,mode='raw'}
+                -- We start at i=2 to leave the header
+                for i=2,#m do
+                      representSpelling(m[i])  
+                end
+
+                csvigo.save{data=m,path=filepath..'Jólaskrá'}
+end
 -- Okay, this is the game:
 -- We want to compare strings. We want it to be done in a way such that we see spelling mistakes
 -- what we are trying to do is to produce a way of highlighting in which way this could be done
@@ -13,10 +48,11 @@
 -- will be the word which will bear the most resemblance to the target sequence
 -- This is the idea: Make two vectors each corresponding to the original word and to the corrected word
 -- Note that we will then have obtained a measure in lua
-
-function representSpelling(wrongW, correctW)
+function representSpelling(tab)
+       wrongW = tab[1]
+       correctW = tab[2]
        utf8 = require('lua-utf8')
-       dbg = require('debugger.lua/debugger')
+       --dbg = require('debugger.lua/debugger')
        -- If this is the case then we need to figure out which characters we have to insert by looking 
        -- at the shorter word, that is the target word. Thid reduces the time complexity a little
        local longerW = ''
@@ -59,9 +95,12 @@ function representSpelling(wrongW, correctW)
        local lastPos = -99
        -- We need the longerV as well to catch repeated chars
        for i = 1, sLength do
-               dbg()
-               -- captures char i from shorterW
+               --dbg()
+                -- captures char i from shorterW
                currChar = utf8.sub(shorterW,i,i)
+               if currChar == '%' then currChar = '%%' end
+               if currChar == '(' then currChar = '%(' end
+               if currChar == '[' then currChar = '%[' end
                -- look for currchar in the string
                -- case 1. char is not found
                -- case 2. char is found
@@ -75,12 +114,16 @@ function representSpelling(wrongW, correctW)
                    -- but not in the longer
                else -- in case of 2.
                    -- In case there are multiple instances of currChar in longerW we prefer
-                   -- the one that will give us the lis
-                   if charPos <= lastPos and utf8.find(longerW, currChar, charPos + 1) ~= nil then
+                   -- the one that will give us the lis, that is the least value of charpos
+                   -- bigger than lastpos
+                   local tmpPos = charPos
+                   while charPos <= lastPos and utf8.find(longerW, currChar, charPos + 1) ~= nil do
+                           tmpPos = charPos
                            charPos = utf8.find(longerW, currChar, charPos +1)
                    end
-                   table.insert(deleteV,charPos) -- We need it to prevent same numbers problem from lis
-                   lastPos = charPos
+                   if charPos ~= nil then tmpPos = charPos else table.insert(insertV,i) end
+                   table.insert(deleteV,tmpPos) -- We need it to prevent same numbers problem from lis
+                   if charPos > lastPos then lastPos = charPos end
                end
                -- Since we are always shrinking the word we are looking for a position in we will never
                -- ever get repeated postions, this importantly means that we can only obtain strictly 
@@ -94,7 +137,6 @@ function representSpelling(wrongW, correctW)
        -- Let 
 
        local noDeleteV = lis(deleteV)
-       dbg()
        -- Now we only keep the charPositions that are not in noDeleteV
        -- noDeleteV is a strictly increasing sequence of numbers
        -- So we will simply go through the old DeleteV and we can iterate through noDeleteV at the same time
@@ -122,13 +164,16 @@ function representSpelling(wrongW, correctW)
                end
        end
        insertW = insertW..' ]'
+       -- ShorterW is targetW and insertV describes what needs to be done for the targetW
+       -- The problem is symmetric in the sense that if targetW is longer then we can simply
+       -- switch insert for delete
 
        if utf8.len(wrongW) >= utf8.len(correctW) then
-               print(deleteW)
-               print(insertW)
+               table.insert(tab,deleteW) -- Here shorterW is correctW, the targetW.
+               table.insert(tab,insertW)
        else
-               print(insertW)
-               print(deleteW)
+               table.insert(tab,insertW)
+               table.insert(tab,deleteW)
        end
 
 end

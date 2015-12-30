@@ -6,13 +6,13 @@ import os
 import csv
 
 def main(args):
-  #Path is relative to the directory which the script is run from
   words = dict()
-  path = args.path
   jsonfn = 'wordderivatives.json'
   analysisfn = 'analysis.csv'
   pseudofn = 'pseudoinput.txt'
   if args.derive:
+    #Path is relative to the directory which the script is run from
+    path = args.derive
     filenames = getfilenames(path)
     getderivatives(words,filenames,path)
     writederivatives_to_json(words,jsonfn)
@@ -123,13 +123,12 @@ def getfilenames(path='./'):
 if __name__ == "__main__":
   #Set up command line argument handling
   parser = argparse.ArgumentParser(description='Analyse word derivatives of data.')
-  #Path to data
-  parser.add_argument('path',help='Relative path to data. IMPORTANT: Only data files\
-      that are to be analysed for derivatives can be in directory at path. So it works\
-      both when the data is fragmented in multiple data files and also concatenated into one large input.txt file\
-      (but then make sure the input.txt file is the only file in the directory)')
   #Get derivatives from files in ./data and write to json
-  parser.add_argument('--derive',action='store_true',help='Get derivatives and their frequencies for each word in datafiles in path')
+  parser.add_argument('--derive',metavar='DATAPATH',help='Get derivatives and their frequencies for each word in datafiles in path.\
+      Relative path to data. IMPORTANT: Only data files that are to be analysed for\
+      derivatives can be in directory at path. So it works both when the data is\
+      fragmented in multiple data files and also concatenated into one large input.txt file\
+      (but then make sure the input.txt file is the only file in the directory)')
   #Write analysis of the data in a human readable form
   parser.add_argument('--human',action='store_true',help='Write words, derivatives and frequencies in human readable form .csv file')
   #Create pseudodata from input file

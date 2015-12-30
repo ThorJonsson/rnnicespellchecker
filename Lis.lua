@@ -86,10 +86,9 @@ function representSpelling(tab)
        -- The chars that should be deleted from the ones found are the ones that are not 
        -- int the longest subsequence of the chars which pertain to case 2
        -- So what we do in this loop is that we record the positions of the chars that are found
-       local insertV = {}
-       local deleteV = {}
-       local noDeleteV = {}
+       local instances = {}
        local k = 1
+       local currInst = {}
        local currChar = ''
        local charPos = -99
        local lastPos = -99
@@ -108,8 +107,9 @@ function representSpelling(tab)
                -- We only want the charPositions
                -- in case of 1, they are not found so they should be inserted
                if charPos == nil then
+                   -- Nothing to do!
                    -- note that this vector will not have the same length as shorterW
-                   table.insert(insertV,i) --These are positions from the
+                   --table.insert(insertV,i) --These are positions from the
                    -- shorter word, characters that are in the shorter word
                    -- but not in the longer
                else -- in case of 2.
@@ -121,8 +121,10 @@ function representSpelling(tab)
                            tmpPos = charPos
                            charPos = utf8.find(longerW, currChar, charPos +1)
                    end
-                   if charPos ~= nil then tmpPos = charPos else table.insert(insertV,i) end
-                   table.insert(deleteV,tmpPos) -- We need it to prevent same numbers problem from lis
+                   if charPos ~= nil then tmpPos = charPos end
+                   currInst = {charPos, tmpPos}
+                   table.insert(instances, currInst)
+                   --table.insert(deleteV,tmpPos) -- We need it to prevent same numbers problem from lis
                    if charPos > lastPos then lastPos = charPos end
                end
                -- Since we are always shrinking the word we are looking for a position in we will never
@@ -135,16 +137,30 @@ function representSpelling(tab)
        -- Now we need to find the longest increasing subsequence of char positions in deleteV
        -- The indices belonging to the longest increasing subsequence should not be deleted
        -- Let 
-
+       --dbg()
+       local noInsertV = {}
+       local deleteV = {}
+       local noDeleteV = {}
+       for i=1,#instances do table.insert(deleteV,instances[i][2]) end
        local noDeleteV = lis(deleteV)
+       l = 1
+       for i=1,#instances do 
+               -- char positions that are not in insertV will be printed as they should be inserted
+               if noDeleteV[l] == instances[i][2] then 
+                       table.insert(noInsertV,instances[i][1]) 
+                       l = l+1
+               end
+       end
+       -- þetta er snilld held ég
        -- Now we only keep the charPositions that are not in noDeleteV
        -- noDeleteV is a strictly increasing sequence of numbers
        -- So we will simply go through the old DeleteV and we can iterate through noDeleteV at the same time
        local deleteW = '[ '
        local l = 1
+       -- We want to print all chars in instances that are not in noDeleteV
        for i=1,lLength do
                if i ~= 1 then deleteW = deleteW..' , ' end
-               if i == noDeleteV[l] then
+               if i == noDeleteV[l] then -- fill the cell with emptiness
                        deleteW = deleteW..' '
                        l = l+1
                else 
@@ -154,13 +170,14 @@ function representSpelling(tab)
        deleteW = deleteW..' ]'
        local insertW = '[ '
        l = 1
+       -- We want to print all chars in instances that are not in noInsertV
        for i=1,sLength do
                if i ~= 1 then insertW = insertW..' , ' end
-               if i == insertV[l] then
-                       insertW = insertW..utf8.sub(shorterW,i,i)
-               else
+               if i == noInsertV[l] then -- fill the cell with emptiness
                        insertW = insertW..' '
-       
+                       l = l+1
+               else
+                       insertW = insertW..utf8.sub(shorterW,i,i)
                end
        end
        insertW = insertW..' ]'

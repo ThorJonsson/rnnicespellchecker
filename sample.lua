@@ -17,7 +17,7 @@ require 'csvigo'
 require 'util.OneHot'
 require 'util.misc'
 local dbg = require("debugger.lua/debugger")
-
+local utf8 = require("lua-utf8")
 cmd = torch.CmdLine()
 cmd:text()
 cmd:text('Sample from a character-level language model')
@@ -96,7 +96,6 @@ state_size = #current_state
 local seed_text = ''
 -- do a few seeded timesteps What are seeded timesteps
 local csv_table = csvigo.load({path = opt.csvFile, mode = 'large'})
-dbg()
 for j=1, 100 do 
         seed_text = csv_table[j+1][1] .. ','
         io.write(csv_table[j+1][1] .. ',')
@@ -105,6 +104,9 @@ for j=1, 100 do
                         prev_char = torch.Tensor{vocab[c]}
                         if opt.gpuid >= 0 and opt.opencl == 0 then prev_char = prev_char:cuda() end
                         if opt.gpuid >= 0 and opt.opencl == 1 then prev_char = prev_char:cl() end
+                        -- produces output from prev_char and the current_state
+                        -- The output is a probability distribution over the characters
+                        -- By current_state we mean the set of states which produce the output 
                         local lst = protos.rnn:forward{prev_char, unpack(current_state)}
                         -- lst is a list of [state1,state2,..stateN,output]. We want everything but last piece
                         current_state = {}
@@ -118,10 +120,10 @@ for j=1, 100 do
         -- log probabilities from the previous timestep
                 if opt.sample == 0 then
                 -- use argmax
-                        local _, prev_char_ = prediction:max(2) -- what is prediction
+                        local _, prev_char_ = prediction:max(2) --
                         prev_char = prev_char_:resize(1)
                 else
-                -- use sampling
+                        dbg()
                         prediction:div(1) -- scale by temperature
                         probs = torch.exp(prediction):squeeze()
                         probs:div(torch.sum(probs)) -- renormalize so probs sum to one
